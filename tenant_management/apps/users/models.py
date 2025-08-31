@@ -32,7 +32,7 @@ class Account(models.Model):
         ("Female", "Female"),
         ("Other", "Other"),
     )
-    user = models.OneToOneField(User, settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="account")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="account")
     first_name = models.CharField(max_length=30)
     last_name = models.CharField(max_length=30)
     gender = models.CharField(max_length=10, choices=gender_choices, null=True)
