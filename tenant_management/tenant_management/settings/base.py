@@ -14,13 +14,18 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     "corsheaders",
     "rest_framework",
-    "apps.users.apps.UsersConfig",
+    "rest_framework_simplejwt",
+    "apps.users",
     "apps.tenants",
-    "apps.properties",
-    "apps.leases",
     "apps.payments",
     "apps.notifications",
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    )
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
