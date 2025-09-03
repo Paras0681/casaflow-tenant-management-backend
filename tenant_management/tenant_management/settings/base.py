@@ -15,7 +15,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "rest_framework",
     "rest_framework_simplejwt",
-    "apps.users.apps.UsersConfig",
+    "apps.users",
     "apps.tenants",
     "apps.payments",
     "apps.notifications",
