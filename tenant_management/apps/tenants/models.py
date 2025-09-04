@@ -1,6 +1,5 @@
 from django.db import models
 from apps.users.models import Account
-# Create your models here.
 
 
 class Property(models.Model):
@@ -32,6 +31,7 @@ class Room(models.Model):
         verbose_name_plural = "Rooms"
         ordering = ["room_number"]
 
+
 class TenantsData(models.Model):
     RENT_STATUS_CHOICES = (
         ("paid", "Paid"),  
@@ -40,9 +40,8 @@ class TenantsData(models.Model):
         ("partial", "Partial"),
         ("overdue", "Overdue"),
     )
-
-    account_id = models.ForeignKey(Account, on_delete=models.CASCADE, related_name="tenants_data")
-    room_number = models.ForeignKey(Room, on_delete=models.CASCADE, related_name="tenants")
+    account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name="tenants_data")
+    room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name="tenants")
     rent_status = models.CharField(max_length=10, choices=RENT_STATUS_CHOICES, default="unpaid")
     deposit_amount = models.DecimalField(max_digits=10, decimal_places=2)
     rent_amount = models.DecimalField(max_digits=10, decimal_places=2)
