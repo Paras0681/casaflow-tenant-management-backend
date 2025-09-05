@@ -1,6 +1,7 @@
 from django.db import models
 from apps.users.models import Account
-
+from cloudinary.models import CloudinaryField
+from cloudinary.uploader import upload as cloudinary_upload
 
 class Property(models.Model):
     name = models.CharField(max_length=100)
@@ -59,3 +60,42 @@ class TenantsData(models.Model):
         verbose_name = "Tenants Data"
         verbose_name_plural = "Tenants Data"
         ordering = ["-created_at"]
+
+
+class TenantsFiles(models.Model):
+    FILE_TYPE_CHOICES = (
+        ("id_proof", "ID Proof"),
+        ("driving_license", "Driving License"),
+        ("aadhar_card", "Aadhar Card"),
+        ("pan_card", "Pan Card"),
+        ("lease_agreement", "Lease Agreement"),
+        ("meter_reading", "Meter Reading"),
+        ("light_bill", "Light Bill"),
+        ("water_bill", "Water Bill"),
+        ("Maintenance", "Maintenance"),
+        ("payment_receipt", "Payment Receipt"),
+        ("other", "Other"),
+    )
+    account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name="tenants_files")
+    room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name="tenants_files")
+    file = CloudinaryField("file", folder="tenant_files")
+    file_type = models.CharField(max_length=20, choices=FILE_TYPE_CHOICES)
+    unit_reading = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    description = models.TextField(blank=True, null=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "tenants_files"
+        verbose_name = "Tenants Files"
+        verbose_name_plural = "Tenants Files"
+
+    def save(self, *args, **kwargs):
+        if self.file and hasattr(self.file, 'file'):
+            # Build folder path dynamically: tenant_files/room_<room_number>
+            folder_path = f"tenant_files/room_{self.room.room_number}"
+
+            # Upload to Cloudinary with folder
+            upload_result = cloudinary_upload(self.file.file, folder=folder_path)
+            self.file = upload_result["secure_url"]
+
+        super().save(*args, **kwargs)

@@ -19,6 +19,8 @@ INSTALLED_APPS = [
     "apps.tenants",
     "apps.payments",
     "apps.notifications",
+    'cloudinary',
+    'cloudinary_storage',
 ]
 
 REST_FRAMEWORK = {
@@ -28,9 +30,9 @@ REST_FRAMEWORK = {
 }
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    "corsheaders.middleware.CorsMiddleware",
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -77,9 +79,25 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
 ]
-
+CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_ALL_ORIGINS = True
 AUTH_USER_MODEL = 'users.User'
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+
+# Cloudinary configuration
+CLOUDINARY_STORAGE = {
+    "CLOUD_NAME": "dwoyythqz",
+    "API_KEY": "987442384296771",
+    "API_SECRET": "jCnEoNV5OKTDNIx_4MWsxBdztB8",
+}
+import cloudinary
+import os
+
+cloudinary.config(
+    cloud_name="dwoyythqz",
+    api_key="987442384296771",
+    api_secret="jCnEoNV5OKTDNIx_4MWsxBdztB8",
+)
+DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"

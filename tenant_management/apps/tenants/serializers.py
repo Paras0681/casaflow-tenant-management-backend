@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from apps.users.models import Account
 from apps.users.models import User
+from .models import TenantsFiles
 
 class TenantsProfileSerializer(serializers.ModelSerializer):
     email = serializers.CharField(source='user.email', read_only=True)
@@ -21,3 +22,20 @@ class TenantsProfileSerializer(serializers.ModelSerializer):
             room_number=validated_data['room_number']
         )
         return account
+    
+class TenantsFilesSerializer(serializers.ModelSerializer):
+    room_number = serializers.CharField(source='room.room_number', read_only=True)
+    class Meta:
+        model = TenantsFiles
+        fields = [
+            "id",
+            "tenants_data",
+            "room",
+            "room_number",
+            "file",
+            "file_type",
+            "description",
+            "unit_reading",
+            "uploaded_at",
+        ]
+        read_only_fields = ["id", "uploaded_at", "room_number"]
