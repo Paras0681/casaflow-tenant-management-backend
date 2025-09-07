@@ -6,7 +6,7 @@ from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .serializers import UserSerializer,LoginSerializer,RegisterSerializer
-User = get_user_model()
+from apps.users.models import Account, User
 #This is the LoginAPI view for user authentication
 class LoginAPIView(APIView):
     def post(self,request):
@@ -23,18 +23,17 @@ class LoginAPIView(APIView):
 
 class RegisterAPIView(APIView):
     def post(self,request):
+        user = User.objects.filter(email=request.data.get('email')).first()
+        if user:
+            return Response({"error": "Email already exists."}, status=status.HTTP_400_BAD_REQUEST)
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
-            email = serializer.validated_data.get("email")
-
-            if User.objects.filter(email=email).exists():
-                return Response({"error": "Email already exists."}, status=status.HTTP_400_BAD_REQUEST)
-
-            user = serializer.save()
+            serializer.save()
+            user = User.objects.get(email=request.data.get('email'))
             refresh = RefreshToken.for_user(user)
             return Response({
                 "message": "User registered successfully",
-                "id": user.id,
+                'user':  {user.id, user.email},
                 "email": user.email,
                 "refresh": str(refresh),
                 "access": str(refresh.access_token),

@@ -79,6 +79,7 @@ class TenantsFiles(models.Model):
     account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name="tenants_files")
     room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name="tenants_files")
     file = CloudinaryField("file", folder="tenant_files")
+    public_id = models.CharField(max_length=255, blank=True, null=True)
     file_type = models.CharField(max_length=20, choices=FILE_TYPE_CHOICES)
     unit_reading = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
@@ -93,9 +94,10 @@ class TenantsFiles(models.Model):
         if self.file and hasattr(self.file, 'file'):
             # Build folder path dynamically: tenant_files/room_<room_number>
             folder_path = f"tenant_files/room_{self.room.room_number}"
-
             # Upload to Cloudinary with folder
             upload_result = cloudinary_upload(self.file.file, folder=folder_path)
             self.file = upload_result["secure_url"]
+            self.public_id = upload_result['public_id']
+            
 
         super().save(*args, **kwargs)

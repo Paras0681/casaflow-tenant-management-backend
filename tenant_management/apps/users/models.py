@@ -30,15 +30,9 @@ class User(AbstractUser, PermissionsMixin):
 
 class Account(models.Model):
     account_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
-    gender_choices = (
-        ("male", "Male"),
-        ("Female", "Female"),
-        ("Other", "Other"),
-    )
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="account")
     first_name = models.CharField(max_length=30)
     last_name = models.CharField(max_length=30)
-    gender = models.CharField(max_length=10, choices=gender_choices, null=True)
     address = models.CharField(max_length=255, blank=True, null=True)
     room_number = models.CharField(max_length=10, blank=True, null=True)
     phone_number = models.CharField(max_length=15, blank=True, null=True)

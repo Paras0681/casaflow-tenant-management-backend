@@ -29,7 +29,6 @@ class TenantsFilesSerializer(serializers.ModelSerializer):
         model = TenantsFiles
         fields = [
             "id",
-            "tenants_data",
             "room",
             "room_number",
             "file",

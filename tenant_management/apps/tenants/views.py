@@ -9,6 +9,8 @@ from .models import TenantsFiles
 from .serializers import TenantsFilesSerializer
 from django.shortcuts import get_object_or_404
 from .models import Room
+from cloudinary.uploader import destroy as cloudinary_destroy
+
 # View to handle fetching Tenants Profile creation and update
 class TenantsProfilesAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -19,21 +21,12 @@ class TenantsProfilesAPIView(APIView):
         serializer = TenantsProfileSerializer(tenants, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
-    def post(self,request):
-        if Account.objects.filter(user=request.user).exists():
-            return Response({"error": "Account with this email already exists."}, status=status.HTTP_400_BAD_REQUEST)
-        serializer = TenantsProfileSerializer(data=request.data, context={"request": request})
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
     def patch(self, request, account_id=None):
         try:
             tenant = Account.objects.get(account_id=account_id)
         except Account.DoesNotExist:
             return Response({"error": "Tenant not found."}, status=status.HTTP_404_NOT_FOUND)
-        allowed_fields = ['first_name', 'last_name', 'phone_number', 'email']
+        allowed_fields = ['first_name', 'last_name', 'phone_number', 'email', 'occupation', 'room_number']
         request_data = {}
         for key, value in request.data.items():
             if key in allowed_fields:
@@ -45,32 +38,44 @@ class TenantsProfilesAPIView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
-class TenantsFilesAPIView(APIView):
+class TenantsFilesListAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         user = request.user
         files = TenantsFiles.objects.all().order_by('-uploaded_at')
         if not user.is_staff:
-            account = Account.objects.filter(user=user).first()
-            if account:
-                files = files.filter(room__room_number=account.room_number)
-            else:
-                return Response({"error": "No account associated with this user."}, status=status.HTTP_404_NOT_FOUND)
-        else:
-            files = TenantsFiles.objects.all().order_by('-uploaded_at')
-            room_number = self.request.query_params.get("room_number")
-            if room_number:
-                files = files.filter(room__room_number=room_number)
-        serializer = TenantsFilesSerializer(files, many=True)
+            account = Account.objects.filter(user=request.user).first()
+            if not account:
+                return Response(
+                    {"error": "No account for this user."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            files = TenantsFiles.objects.filter(
+                room__room_number=account.room_number
+            ).order_by('-uploaded_at')
+        serializer = TenantsFilesSerializer(files, many=True, context={"request": request})
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def delete(self, request, id): 
+        file_id = id
+        file = get_object_or_404(TenantsFiles, id=file_id)
+        if not file_id:
+            return Response({"error": "File ID is required."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            tenants_file = TenantsFiles.objects.get(id=file_id)
+            if file.public_id:  
+                cloudinary_destroy(file.public_id)
+                tenants_file.delete()
+                return Response({"message": "File deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+
+        except TenantsFiles.DoesNotExist:
+            return Response({"error": "File not found."}, status=status.HTTP_404_NOT_FOUND)
     
 class TenantsFilesAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        print(request.data)
-        print(request.FILES)
         user = request.user
         file = request.FILES.get("file")
         file_type = request.data.get("file_type")
@@ -107,3 +112,4 @@ class TenantsFilesAPIView(APIView):
             "unit_reading": tenants_file.unit_reading,
             "uploaded_at": tenants_file.uploaded_at
         }, status=201)
+     
