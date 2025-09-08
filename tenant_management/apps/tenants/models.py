@@ -36,21 +36,18 @@ class Room(models.Model):
 class TenantsData(models.Model):
     RENT_STATUS_CHOICES = (
         ("paid", "Paid"),  
-        ("unpaid", "Unpaid"),
-        ("pending", "Pending"),
+        ("not_paid", "Not Paid"),
         ("partial", "Partial"),
         ("overdue", "Overdue"),
     )
     account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name="tenants_data")
     room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name="tenants")
-    rent_status = models.CharField(max_length=10, choices=RENT_STATUS_CHOICES, default="unpaid")
-    deposit_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    payment_status = models.CharField(max_length=10, choices=RENT_STATUS_CHOICES, default="unpaid")
     rent_amount = models.DecimalField(max_digits=10, decimal_places=2)
     lightbill_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    unit_reading = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    waterbill_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     other_charges = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    invoice_month = models.DateTimeField(auto_now_add=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     paid_at = models.DateTimeField(null=True, blank=True)

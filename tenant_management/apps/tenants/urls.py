@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import TenantsProfilesAPIView, TenantsFilesAPIView, TenantsFilesListAPIView
+from .views import TenantsProfilesAPIView, TenantsFilesAPIView, TenantsFilesListAPIView, GetReceiptsAPIView, GenerateReceiptsAPIView, DeleteReceiptsAPIView
 
 urlpatterns = [
     path("tenants-profile/", TenantsProfilesAPIView.as_view(), name="tenants-profile"),
@@ -7,4 +7,7 @@ urlpatterns = [
     path("files/upload/", TenantsFilesAPIView.as_view(), name="upload-tenant-file"),
     path("files/", TenantsFilesListAPIView.as_view(), name="fetch-tenant-files"),
     path("files/<int:id>/", TenantsFilesListAPIView.as_view(), name="fetch-tenant-files"),
+    path("receipts/", GetReceiptsAPIView.as_view(), name="receipts"),
+    path("receipts/generate/", GenerateReceiptsAPIView.as_view(), name="generate-receipts"),
+    path("receipts/delete/", DeleteReceiptsAPIView.as_view(), name="generate-receipts"),
 ]

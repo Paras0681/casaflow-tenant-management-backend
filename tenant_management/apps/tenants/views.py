@@ -6,7 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from .serializers import TenantsProfileSerializer
 from apps.users.models import Account, User
 from .models import TenantsFiles
-from .serializers import TenantsFilesSerializer
+from .serializers import TenantsDataSerialzier, TenantsFilesSerializer
 from django.shortcuts import get_object_or_404
 from .models import Room
 from cloudinary.uploader import destroy as cloudinary_destroy
@@ -113,3 +113,67 @@ class TenantsFilesAPIView(APIView):
             "uploaded_at": tenants_file.uploaded_at
         }, status=201)
      
+class GetReceiptsAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        if not user.is_staff:
+            return Response({"error": "Only staff can access this endpoint."}, status=status.HTTP_403_FORBIDDEN)
+        rooms = Room.objects.all()
+        response_data = {
+            "rooms":[],
+            "receipts": []
+        }
+        for room in rooms:
+            response_data["rooms"].append({
+                "room": room.room_number,
+                "occupants": room.occupants 
+            })
+        accounts = Account.objects.all()
+        for accounts in accounts:
+            tenants_data = accounts.tenants_data.all()
+            if tenants_data.exists():
+                for tenant_data in tenants_data:
+                    receipt = {
+                        "tenant_name": f"{tenant_data.account.first_name} {tenant_data.account.last_name}",
+                        "room_number": tenant_data.room.room_number,
+                        "payment_status": tenant_data.payment_status,
+                        "paid_at": tenant_data.paid_at,
+                        "rent_amount": tenant_data.rent_amount,
+                        "lightbill_amount": tenant_data.lightbill_amount,
+                        "other_charges": tenant_data.other_charges,
+                        "total_amount": tenant_data.total_amount,
+                    }
+                    response_data["receipts"].append(receipt)
+        return Response(response_data, status=status.HTTP_200_OK)
+    
+class GenerateReceiptsAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        user = request.user
+        if not user.is_staff:
+            return Response({"error": "Only staff can access this endpoint."}, status=status.HTTP_403_FORBIDDEN)
+        serializer = TenantsDataSerialzier(data=request.data, context={"request": request})
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class DeleteReceiptsAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def delete(self, request):
+        user = request.user
+        if not user.is_staff:
+            return Response({"error": "Only staff can access this endpoint."}, status=status.HTTP_403_FORBIDDEN)
+        # receipt_id = request.data.get("receipt_id")
+        # if not receipt_id:
+        #     return Response({"error": "receipt_id is required."}, status=status.HTTP_400_BAD_REQUEST)
+        # try:
+        #     tenants_data = TenantsData.objects.get(id=receipt_id)
+        #     tenants_data.delete()
+        #     return Response({"message": "Receipt deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+        # except TenantsData.DoesNotExist:
+        #     return Response({"error": "Receipt not found."}, status=status.HTTP_404_NOT_FOUND)

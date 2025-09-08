@@ -33,6 +33,7 @@ class Account(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="account")
     first_name = models.CharField(max_length=30)
     last_name = models.CharField(max_length=30)
+    deposit_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     address = models.CharField(max_length=255, blank=True, null=True)
     room_number = models.CharField(max_length=10, blank=True, null=True)
     phone_number = models.CharField(max_length=15, blank=True, null=True)
