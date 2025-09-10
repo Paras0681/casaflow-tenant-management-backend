@@ -23,7 +23,8 @@ class Property(models.Model):
 class Room(models.Model):
     property = models.ForeignKey(Property, on_delete=models.CASCADE, related_name="rooms")
     room_number = models.PositiveIntegerField(unique=True)
-    occupants = models.PositiveIntegerField(default=0)
+    active_tenants = models.IntegerField(default=0)
+    max_occupants = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     class Meta:
@@ -95,6 +96,4 @@ class TenantsFiles(models.Model):
             upload_result = cloudinary_upload(self.file.file, folder=folder_path)
             self.file = upload_result["secure_url"]
             self.public_id = upload_result['public_id']
-            
-
         super().save(*args, **kwargs)

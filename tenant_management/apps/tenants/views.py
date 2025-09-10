@@ -6,10 +6,14 @@ from rest_framework.permissions import IsAuthenticated
 from .serializers import TenantsProfileSerializer
 from apps.users.models import Account, User
 from .models import TenantsFiles
-from .serializers import TenantsDataSerialzier, TenantsFilesSerializer
+from .serializers import TenantsDataSerialzier, TenantsFilesSerializer, PropertySerializer,RoomSerializer
 from django.shortcuts import get_object_or_404
-from .models import Room
+from .models import Room, Property
 from cloudinary.uploader import destroy as cloudinary_destroy
+from .utils.pdf_generator import save_invoice_for_tenant
+import os
+from django.conf import settings
+
 
 # View to handle fetching Tenants Profile creation and update
 class TenantsProfilesAPIView(APIView):
@@ -118,8 +122,6 @@ class GetReceiptsAPIView(APIView):
 
     def get(self, request):
         user = request.user
-        if not user.is_staff:
-            return Response({"error": "Only staff can access this endpoint."}, status=status.HTTP_403_FORBIDDEN)
         rooms = Room.objects.all()
         response_data = {
             "rooms":[],
@@ -131,6 +133,8 @@ class GetReceiptsAPIView(APIView):
                 "occupants": room.occupants 
             })
         accounts = Account.objects.all()
+        if not user.is_staff:
+            accounts = Account.objects.filter(user=user)
         for accounts in accounts:
             tenants_data = accounts.tenants_data.all()
             if tenants_data.exists():
@@ -152,28 +156,62 @@ class GenerateReceiptsAPIView(APIView):
     permission_classes = [IsAuthenticated]
     
     def post(self, request):
+        response = {"invoice_data": [], "pdf_file_data": []}
         user = request.user
         if not user.is_staff:
             return Response({"error": "Only staff can access this endpoint."}, status=status.HTTP_403_FORBIDDEN)
-        serializer = TenantsDataSerialzier(data=request.data, context={"request": request})
+        account = Account.objects.filter(user=user).first()
+        accounts = Account.objects.filter(room_number = account.room_number)
+        if not accounts.exists():
+            return Response({"message": "No Tenants in the Room yet."}, status=status.HTTP_404_NOT_FOUND)
+        for account in accounts:
+            room = Room.objects.filter(room_number=account.room_number).first()
+            serializer = TenantsDataSerialzier(data=request.data, context={"account": account, "room": room})
+            if serializer.is_valid():
+                serializer.save()
+                data = serializer.validated_data 
+                response["invoice_data"].append(serializer.data)
+                pdf_file = save_invoice_for_tenant(
+                    data,
+                    account=account,
+                    qr_code_path=os.path.join(
+                        settings.BASE_DIR, 
+                        "static", 
+                        "images", 
+                        "qr_code.png"
+                        ).replace("\\", "/"
+                    ),
+                    font_size=12,
+                    font_family="Times-Roman"
+                )
+                response["pdf_file_data"].append(str(pdf_file.file))
+            else:
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        breakpoint()
+        return Response(response, status=status.HTTP_201_CREATED)
+
+
+class PropertyAPIView(APIView):
+    def get(self, request):
+        data = Property.objects.all()
+        serializer = PropertySerializer(data, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        serializer = PropertySerializer(data = request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+class RoomAPIView(APIView):
+    def get(self, request):
+        rooms = Room.objects.all()
+        serializer = RoomSerializer(rooms, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     
-class DeleteReceiptsAPIView(APIView):
-    permission_classes = [IsAuthenticated]
-    
-    def delete(self, request):
-        user = request.user
-        if not user.is_staff:
-            return Response({"error": "Only staff can access this endpoint."}, status=status.HTTP_403_FORBIDDEN)
-        # receipt_id = request.data.get("receipt_id")
-        # if not receipt_id:
-        #     return Response({"error": "receipt_id is required."}, status=status.HTTP_400_BAD_REQUEST)
-        # try:
-        #     tenants_data = TenantsData.objects.get(id=receipt_id)
-        #     tenants_data.delete()
-        #     return Response({"message": "Receipt deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
-        # except TenantsData.DoesNotExist:
-        #     return Response({"error": "Receipt not found."}, status=status.HTTP_404_NOT_FOUND)
+    def post(self, request):
+        serialzer = RoomSerializer(data=request.data)
+        if serialzer.is_valid():
+            serialzer.save()
+            return Response(serialzer.data, status=status.HTTP_201_CREATED)
+        return Response(serialzer.errors, status=status.HTTP_400_BAD_REQUEST)
