@@ -81,7 +81,7 @@ class TenantsFilesAPIView(APIView):
 
     def post(self, request):
         user = request.user
-        file = request.FILES.get("file")
+        file = request.FILES.get("file_url")
         file_type = request.data.get("file_type")
         room_number = request.data.get("room_number")
         description = request.data.get("description", "")
@@ -130,7 +130,7 @@ class GetReceiptsAPIView(APIView):
         for room in rooms:
             response_data["rooms"].append({
                 "room": room.room_number,
-                "occupants": room.occupants 
+                "occupants": room.max_occupants 
             })
         accounts = Account.objects.all()
         if not user.is_staff:
@@ -160,10 +160,10 @@ class GenerateReceiptsAPIView(APIView):
         user = request.user
         if not user.is_staff:
             return Response({"error": "Only staff can access this endpoint."}, status=status.HTTP_403_FORBIDDEN)
-        account = Account.objects.filter(user=user).first()
-        accounts = Account.objects.filter(room_number = account.room_number)
-        if not accounts.exists():
+        room = Room.objects.filter(room_number=request.data['room_number']).first()
+        if room.active_tenants == 0:
             return Response({"message": "No Tenants in the Room yet."}, status=status.HTTP_404_NOT_FOUND)
+        accounts = Account.objects.filter(room_number = request.data['room_number'])
         for account in accounts:
             room = Room.objects.filter(room_number=account.room_number).first()
             serializer = TenantsDataSerialzier(data=request.data, context={"account": account, "room": room})
@@ -180,14 +180,11 @@ class GenerateReceiptsAPIView(APIView):
                         "images", 
                         "qr_code.png"
                         ).replace("\\", "/"
-                    ),
-                    font_size=12,
-                    font_family="Times-Roman"
+                    )
                 )
-                response["pdf_file_data"].append(str(pdf_file.file))
+                response["pdf_file_data"].append(str(pdf_file.file_url))
             else:
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        breakpoint()
         return Response(response, status=status.HTTP_201_CREATED)
 
 

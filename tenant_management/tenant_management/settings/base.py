@@ -1,5 +1,14 @@
-from pathlib import Path
 import os
+from pathlib import Path
+from pathlib import Path
+from dotenv import load_dotenv
+import cloudinary
+from decouple import config
+# Base directory (project root)
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+# Load .env file
+load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -87,18 +96,20 @@ AUTH_USER_MODEL = 'users.User'
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
-# Cloudinary configuration
-CLOUDINARY_STORAGE = {
-    "CLOUD_NAME": "dwoyythqz",
-    "API_KEY": "987442384296771",
-    "API_SECRET": "jCnEoNV5OKTDNIx_4MWsxBdztB8",
-}
-import cloudinary
-import os
+# Configuration
+DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
+
+
+# ========================
+# Cloudinary Settings
+# ========================
+CLOUDINARY_CLOUD_NAME = config("CLOUDINARY_CLOUD_NAME")
+CLOUDINARY_API_KEY = config("CLOUDINARY_API_KEY")
+CLOUDINARY_API_SECRET = config("CLOUDINARY_API_SECRET")
 
 cloudinary.config(
-    cloud_name="dwoyythqz",
-    api_key="987442384296771",
-    api_secret="jCnEoNV5OKTDNIx_4MWsxBdztB8",
+    cloud_name=CLOUDINARY_CLOUD_NAME,
+    api_key=CLOUDINARY_API_KEY,
+    api_secret=CLOUDINARY_API_SECRET,
+    secure=True
 )
-DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"

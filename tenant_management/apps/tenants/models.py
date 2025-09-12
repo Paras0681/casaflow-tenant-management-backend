@@ -1,7 +1,12 @@
 from django.db import models
 from apps.users.models import Account
-from cloudinary.models import CloudinaryField
-from cloudinary.uploader import upload as cloudinary_upload
+from datetime import datetime
+import os
+import cloudinary.uploader
+import os
+from datetime import datetime
+from django.conf import settings
+from firebase_admin import storage
 
 class Property(models.Model):
     name = models.CharField(max_length=100)
@@ -47,7 +52,8 @@ class TenantsData(models.Model):
     rent_amount = models.DecimalField(max_digits=10, decimal_places=2)
     lightbill_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     other_charges = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    per_tenant_share = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     invoice_month = models.DateTimeField(auto_now_add=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -74,9 +80,10 @@ class TenantsFiles(models.Model):
         ("payment_receipt", "Payment Receipt"),
         ("other", "Other"),
     )
+
     account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name="tenants_files")
     room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name="tenants_files")
-    file = CloudinaryField("file", folder="tenant_files")
+    file_url = models.URLField(max_length=500, blank=True, null=True)
     public_id = models.CharField(max_length=255, blank=True, null=True)
     file_type = models.CharField(max_length=20, choices=FILE_TYPE_CHOICES)
     unit_reading = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
@@ -89,11 +96,29 @@ class TenantsFiles(models.Model):
         verbose_name_plural = "Tenants Files"
 
     def save(self, *args, **kwargs):
-        if self.file and hasattr(self.file, 'file'):
-            # Build folder path dynamically: tenant_files/room_<room_number>
+        if hasattr(self, "_uploaded_file"):
             folder_path = f"tenant_files/room_{self.room.room_number}"
-            # Upload to Cloudinary with folder
-            upload_result = cloudinary_upload(self.file.file, folder=folder_path)
-            self.file = upload_result["secure_url"]
-            self.public_id = upload_result['public_id']
+            
+            # Force PNG extension for generated invoice images
+            file_ext = ".png"
+
+            month_str = datetime.now().strftime("%b").lower()
+            base_name = f"invoice_{month_str}_{self.account.first_name.lower()}{file_ext}"
+
+            upload_result = cloudinary.uploader.upload(
+                self._uploaded_file,
+                folder=folder_path,
+                public_id=base_name.replace(" ", "_"),
+                overwrite=True,
+                use_filename=True,
+                unique_filename=False,
+                resource_type="image"  # explicitly set resource_type
+            )
+            self.file_url = upload_result["secure_url"]
+            self.public_id = upload_result["public_id"]
+
         super().save(*args, **kwargs)
+
+    def set_uploaded_file(self, file):
+        """Attach file before saving"""
+        self._uploaded_file = file
