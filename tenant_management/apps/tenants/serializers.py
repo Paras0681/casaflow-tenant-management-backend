@@ -7,7 +7,17 @@ class TenantsProfileSerializer(serializers.ModelSerializer):
     email = serializers.CharField(source='user.email', read_only=True)
     class Meta:
         model = Account
-        fields = ['account_id', 'email', 'first_name', 'last_name', 'phone_number', 'occupation', 'lease_start_date', 'address', 'room_number']
+        fields = [
+            'account_id', 
+            'email', 
+            'first_name', 
+            'last_name', 
+            'phone_number', 
+            'occupation', 
+            'lease_start_date', 
+            'address', 
+            'room_number'
+        ]
     
     def create(self, validated_data): 
         user = User.objects.get(email=self.context['request'].user.email)
@@ -100,6 +110,6 @@ class RoomSerializer(serializers.ModelSerializer):
         ]
 
     def create(self, validated_data):
-        property_instance = validated_data.pop("property")  # pop instead of []
+        property_instance = validated_data.pop("property")
         room = Room.objects.create(property=property_instance, **validated_data)
         return room

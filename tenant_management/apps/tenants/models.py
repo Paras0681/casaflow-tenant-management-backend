@@ -97,13 +97,15 @@ class TenantsFiles(models.Model):
 
     def save(self, *args, **kwargs):
         if hasattr(self, "_uploaded_file"):
-            folder_path = f"tenant_files/room_{self.room.room_number}"
+            if self.file_type == "payment_receipt":
+                folder_path = f"tenant_files/room_{self.room.room_number}/invoices"
+            folder_path = f"tenant_files/room_{self.room.room_number}/uploads"
             
             # Force PNG extension for generated invoice images
             file_ext = ".png"
 
-            month_str = datetime.now().strftime("%b").lower()
-            base_name = f"invoice_{month_str}_{self.account.first_name.lower()}{file_ext}"
+            month_str = datetime.now().strftime("%b").upper()
+            base_name = f"INVOICE_{month_str}_{self.account.first_name.upper()}{file_ext}"
 
             upload_result = cloudinary.uploader.upload(
                 self._uploaded_file,
