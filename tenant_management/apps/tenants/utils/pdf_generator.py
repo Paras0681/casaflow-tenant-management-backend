@@ -32,7 +32,7 @@ def generate_invoice_image(data, qr_code_path=None, font_family="arial.ttf"):
     y += 60
 
     # --------- Issued To + Invoice No ----------
-    draw.text((50, y), f"ISSUED TO:\n{data['username']}\nRoom no: {data['room_number']}", font=regular_font, fill="black")
+    draw.text((50, y), f"ISSUED TO:\nNAME: {data['username']}\nROOM NO: {data['room_number']}", font=regular_font, fill="black")
     draw.text((450, y),
               f"INVOICE NO: {data['invoice_no']}\nDATE: {data['date']}\nDUE DATE: {data['due_date']}",
               font=regular_font, fill="black")
@@ -79,7 +79,7 @@ def generate_invoice_image(data, qr_code_path=None, font_family="arial.ttf"):
 
     # Account info
     draw.text((width // 2 - 120, y),
-              f"Account Holder’s Name: {data['account_name']}\n"
+              f"Account Name: {data['account_name']}\n"
               f"Phone no: {data['account_phone']}\n"
               f"Email: {data['account_email']}",
               font=regular_font, fill="black")

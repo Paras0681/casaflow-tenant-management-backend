@@ -7,6 +7,8 @@ import os
 from datetime import datetime
 from django.conf import settings
 from firebase_admin import storage
+from cloudinary.models import CloudinaryField
+from cloudinary.utils import cloudinary_url
 
 class Property(models.Model):
     name = models.CharField(max_length=100)
@@ -76,14 +78,15 @@ class TenantsFiles(models.Model):
         ("meter_reading", "Meter Reading"),
         ("light_bill", "Light Bill"),
         ("water_bill", "Water Bill"),
-        ("Maintenance", "Maintenance"),
+        ("maintenance", "Maintenance"),
         ("payment_receipt", "Payment Receipt"),
         ("other", "Other"),
     )
 
     account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name="tenants_files")
     room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name="tenants_files")
-    file_url = models.URLField(max_length=500, blank=True, null=True)
+    file_url = models.URLField(blank=True, null=True)
+    download_url = models.URLField(blank=True, null=True) 
     public_id = models.CharField(max_length=255, blank=True, null=True)
     file_type = models.CharField(max_length=20, choices=FILE_TYPE_CHOICES)
     unit_reading = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
@@ -98,25 +101,41 @@ class TenantsFiles(models.Model):
     def save(self, *args, **kwargs):
         if hasattr(self, "_uploaded_file"):
             if self.file_type == "payment_receipt":
-                folder_path = f"tenant_files/room_{self.room.room_number}/invoices"
-            folder_path = f"tenant_files/room_{self.room.room_number}/uploads"
-            
-            # Force PNG extension for generated invoice images
-            file_ext = ".png"
+                folder_path = f"tenant_files/invoices/room_{self.room.room_number}"
+            else:
+                folder_path = f"tenant_files/uploads/room_{self.room.room_number}"
 
-            month_str = datetime.now().strftime("%b").upper()
-            base_name = f"INVOICE_{month_str}_{self.account.first_name.upper()}{file_ext}"
+            # Get the original extension (e.g. .jpg, .png, .pdf)
+            original_name = self._uploaded_file.name
+            _, file_ext = os.path.splitext(original_name)
+            if not file_ext:
+                file_ext = ".png"  # fallback
+
+            # Unique file name
+            timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            base_name = f"{self.account.first_name}_{self.file_type}_{timestamp}"
 
             upload_result = cloudinary.uploader.upload(
                 self._uploaded_file,
                 folder=folder_path,
-                public_id=base_name.replace(" ", "_"),
+                public_id=base_name,
                 overwrite=True,
                 use_filename=True,
                 unique_filename=False,
-                resource_type="image"  # explicitly set resource_type
+                resource_type="auto",
             )
-            self.file_url = upload_result["secure_url"]
+            file_url, _ = cloudinary_url(
+                upload_result["public_id"],
+                resource_type=upload_result["resource_type"],
+            )
+            download_url, _ = cloudinary_url(
+                upload_result["public_id"],
+                resource_type=upload_result["resource_type"],  
+                flags="attachment",  # ensures browser downloads
+                filename=base_name,
+            )
+            self.file_url = file_url
+            self.download_url = download_url
             self.public_id = upload_result["public_id"]
 
         super().save(*args, **kwargs)

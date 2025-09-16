@@ -42,6 +42,7 @@ class TenantsFilesSerializer(serializers.ModelSerializer):
             "room",
             "room_number",
             "file_url",
+            "download_url",
             "file_type",
             "description",
             "unit_reading",

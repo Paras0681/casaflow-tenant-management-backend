@@ -47,7 +47,7 @@ class TenantsFilesListAPIView(APIView):
 
     def get(self, request):
         user = request.user
-        files = TenantsFiles.objects.all().order_by('-uploaded_at')
+        files = TenantsFiles.objects.all().order_by('-uploaded_at').exclude(file_type="payment_receipt")
         if not user.is_staff:
             account = Account.objects.filter(user=request.user).first()
             if not account:
@@ -56,8 +56,8 @@ class TenantsFilesListAPIView(APIView):
                     status=status.HTTP_404_NOT_FOUND,
                 )
             files = TenantsFiles.objects.filter(
-                room__room_number=account.room_number
-            ).order_by('-uploaded_at')
+                account=account
+            ).order_by('-uploaded_at').exclude(file_type="payment_receipt")
         serializer = TenantsFilesSerializer(files, many=True, context={"request": request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -99,18 +99,20 @@ class TenantsFilesAPIView(APIView):
             account = Account.objects.get(user=user)
         except Account.DoesNotExist:
             return Response({"error": "No account associated with this user."}, status=404)
-        tenants_file = TenantsFiles.objects.create(
+        tenants_file = TenantsFiles(
             account=account,
             room=room[0],
-            file=file,
+            file_url=file,
             file_type=file_type.lower(),
             description=description,
             unit_reading=unit_reading if unit_reading else None,
         )
+        tenants_file.set_uploaded_file(file)
+        tenants_file.save()
         return Response({
             "id": tenants_file.id,
             "room": tenants_file.room.room_number,
-            "file": tenants_file.file,
+            "file": tenants_file.file_url,
             "file_type": tenants_file.file_type,
             "description": tenants_file.description,
             "unit_reading": tenants_file.unit_reading,
