@@ -123,7 +123,7 @@ def save_invoice_for_tenant(validated_data, account, qr_code_path=None, font_fam
 
     # Upload to Cloudinary
     month_str = datetime.now().strftime("%b").lower()
-    public_id = f"tenant_files/room_{room.room_number}/invoice_{month_str}_{account.first_name.lower()}"
+    public_id = f"tenant_files/invoices/room_{room.room_number}/invoice_{month_str}_{account.first_name.lower()}"
 
     result = cloudinary.uploader.upload(
         img_buffer,
@@ -137,7 +137,7 @@ def save_invoice_for_tenant(validated_data, account, qr_code_path=None, font_fam
         room=room,
         account=account,
         file_url=file_url,
-        file_type="payment_receipt",
+        file_type="invoice_bill",
         description=f"Invoice for {month_str}"
     )
 

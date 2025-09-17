@@ -80,6 +80,7 @@ class TenantsFiles(models.Model):
         ("water_bill", "Water Bill"),
         ("maintenance", "Maintenance"),
         ("payment_receipt", "Payment Receipt"),
+        ("invoice_bill", "Invoice Bill"),
         ("other", "Other"),
     )
 

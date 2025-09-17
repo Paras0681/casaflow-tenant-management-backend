@@ -41,6 +41,7 @@ class MarkPaymentsAPIView(APIView):
         tenants_file.save()
         payload = {
             "account": account.id,
+            "uploaded_by": f"{account.first_name + account.last_name}",
             "invoice_id": data.get("invoice_id"),
             "payment_id": data.get("payment_id"),
             "payment_utr": data.get("payment_utr"),

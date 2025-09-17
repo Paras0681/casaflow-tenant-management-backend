@@ -132,7 +132,7 @@ class GetReceiptsAPIView(APIView):
         for room in rooms:
             response_data["rooms"].append({
                 "room": room.room_number,
-                "occupants": room.max_occupants 
+                "occupants": room.active_tenants 
             })
         accounts = Account.objects.all()
         if not user.is_staff:

@@ -113,3 +113,14 @@ cloudinary.config(
     api_secret=CLOUDINARY_API_SECRET,
     secure=True
 )
+
+# Email backend (SMTP)
+EMAIL_BACKEND = config("EMAIL_BACKEND")
+
+# Your email account to send notifications from
+EMAIL_HOST = config("EMAIL_HOST")
+EMAIL_PORT = 587        
+EMAIL_USE_TLS = True              
+EMAIL_HOST_USER = config("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
+DEFAULT_FROM_EMAIL = config("EMAIL_HOST_USER")
