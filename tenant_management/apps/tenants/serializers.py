@@ -1,7 +1,9 @@
 from rest_framework import serializers
 from apps.users.models import Account, User
 from .models import TenantsData, TenantsFiles, Property, Room
-
+from apps.tenants.utils.pdf_generator import save_invoice_for_tenant
+import os
+from django.conf import settings
 
 class TenantsProfileSerializer(serializers.ModelSerializer):
     email = serializers.CharField(source='user.email', read_only=True)
@@ -68,14 +70,30 @@ class TenantsDataSerialzier(serializers.ModelSerializer):
             "payment_status",
             "paid_at",
             "created_at",
+            "invoice_url",
         ]
-        read_only_fields = ["id", "created_at", "paid_at"]
+        read_only_fields = ["id", "created_at", "paid_at", "invoice_url"]
 
     def create(self, validated_data):
+        data = validated_data
+        invoice_url, invoice_id= save_invoice_for_tenant(
+            data,
+            account=self.context['account'],
+            qr_code_path=os.path.join(
+                settings.BASE_DIR, 
+                "static", 
+                "images", 
+                "qr_code.png"
+                ).replace("\\", "/"
+            )
+        )
         tenants_data = TenantsData.objects.create(
                 **validated_data, 
                 account=self.context['account'], 
-                room=self.context['room']
+                room=self.context['room'],
+                payment_status="not_paid",
+                invoice_url = invoice_url,
+                invoice_id=invoice_id
         )
         return tenants_data
 

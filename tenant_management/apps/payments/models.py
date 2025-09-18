@@ -10,7 +10,7 @@ class Payments(models.Model):
     payment_id = models.CharField(max_length=50, null=True, blank=True)
     payment_receipt_url = models.URLField(max_length=500, blank=True, null=True)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
-    paid_at = models.DateField(blank=False, default=None)
+    marked_paid_at = models.DateTimeField(blank=False, default=None)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

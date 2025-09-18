@@ -5,15 +5,14 @@ from rest_framework.permissions import IsAuthenticated
 
 from .serializers import TenantsProfileSerializer
 from apps.users.models import Account, User
-from .models import TenantsFiles
+from .models import TenantsFiles, TenantsData
 from .serializers import TenantsDataSerialzier, TenantsFilesSerializer, PropertySerializer,RoomSerializer
 from django.shortcuts import get_object_or_404
 from .models import Room, Property
 from cloudinary.uploader import destroy as cloudinary_destroy
-from .utils.pdf_generator import save_invoice_for_tenant
-import os
-from django.conf import settings
-
+from django.db.models import Sum, Count, Q 
+from apps.payments.models import Payments
+from datetime import datetime
 
 # View to handle fetching Tenants Profile creation and update
 class TenantsProfilesAPIView(APIView):
@@ -47,7 +46,7 @@ class TenantsFilesListAPIView(APIView):
 
     def get(self, request):
         user = request.user
-        files = TenantsFiles.objects.all().order_by('-uploaded_at').exclude(file_type="payment_receipt")
+        files = TenantsFiles.objects.all().order_by('-uploaded_at').exclude(file_type__in=["payment_receipt", "invoice_bill"])
         if not user.is_staff:
             account = Account.objects.filter(user=request.user).first()
             if not account:
@@ -149,7 +148,9 @@ class GetReceiptsAPIView(APIView):
                         "rent_amount": tenant_data.rent_amount,
                         "lightbill_amount": tenant_data.lightbill_amount,
                         "other_charges": tenant_data.other_charges,
-                        "total_amount": tenant_data.total_amount,
+                        "per_tenant_share": tenant_data.per_tenant_share,
+                        "invoice_id": tenant_data.invoice_id,
+                        "invoice_url": tenant_data.invoice_url
                     }
                     response_data["receipts"].append(receipt)
         return Response(response_data, status=status.HTTP_200_OK)
@@ -158,7 +159,7 @@ class GenerateReceiptsAPIView(APIView):
     permission_classes = [IsAuthenticated]
     
     def post(self, request):
-        response = {"invoice_data": [], "pdf_file_data": []}
+        response = {"invoice_data": []}
         user = request.user
         if not user.is_staff:
             return Response({"error": "Only staff can access this endpoint."}, status=status.HTTP_403_FORBIDDEN)
@@ -171,20 +172,7 @@ class GenerateReceiptsAPIView(APIView):
             serializer = TenantsDataSerialzier(data=request.data, context={"account": account, "room": room})
             if serializer.is_valid():
                 serializer.save()
-                data = serializer.validated_data 
                 response["invoice_data"].append(serializer.data)
-                pdf_file = save_invoice_for_tenant(
-                    data,
-                    account=account,
-                    qr_code_path=os.path.join(
-                        settings.BASE_DIR, 
-                        "static", 
-                        "images", 
-                        "qr_code.png"
-                        ).replace("\\", "/"
-                    )
-                )
-                response["pdf_file_data"].append(str(pdf_file.file_url))
             else:
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         return Response(response, status=status.HTTP_201_CREATED)
@@ -214,3 +202,83 @@ class RoomAPIView(APIView):
             serialzer.save()
             return Response(serialzer.data, status=status.HTTP_201_CREATED)
         return Response(serialzer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class DataAnalyticsView(APIView):
+    def get(self, request):
+        total_revenue = Payments.objects.aggregate(total=Sum("amount"))["total"] or 0
+        room_stats = Room.objects.aggregate(
+            active_tenants=Sum("active_tenants"),
+            max_occupants=Sum("max_occupants"),
+        )
+        active_tenants = room_stats["active_tenants"] or 0
+        max_occupants = room_stats["max_occupants"] or 0
+        vacant_beds = max_occupants - active_tenants
+        pending_payments = (TenantsData.objects.filter(
+            payment_status__in=["not_paid", "unpaid"]
+        ).aggregate(
+            total=Sum("total_amount")
+        )["total"] or 0)
+        payments = (
+            TenantsData.objects.filter(payment_status__in = ["paid", "not_paid", "overdue"]).values(
+                "payment_status"
+            )
+            .annotate(total=Sum("total_amount"))
+        )
+        piechart_data = {"paid": 0, "not_paid": 0, "overdue": 0}
+        for payment in payments:
+            status_key = payment["payment_status"]
+            if status_key in piechart_data:
+                piechart_data[payment["payment_status"]] = payment["total"] or 0
+        data = {
+            "card_data":{
+                "total_revenue" : total_revenue,
+                "active_tenants" : active_tenants,
+                "pending_payments" : pending_payments,
+                "vacant_beds" : vacant_beds,
+            },
+            "piechart_data" : piechart_data
+        }
+        return Response(data, status=status.HTTP_200_OK)
+
+
+class YearlyDataView(APIView):
+    def get(self, request):
+        results = []
+        if request.user.is_staff:
+            payments = TenantsData.objects.filter(
+                payment_status="paid"
+            ).order_by("created_at")
+        else:
+            account = Account.objects.filter(user=request.user).first()
+            payments = TenantsData.objects.filter(
+                account=account,
+                payment_status="paid"
+            ).order_by("created_at")
+        for payment in payments:
+            per = payment.room.active_tenants
+            rent_amount_share = payment.rent_amount/per
+            lightbill_amount_share = payment.lightbill_amount/per
+            other_charges_share = payment.other_charges/per
+            results.append({
+                "name": payment.account.first_name,
+                "rent_amount": rent_amount_share,
+                "lightbill_amount": lightbill_amount_share,
+                "other_charges": other_charges_share,
+                "created_at": payment.created_at
+            })
+        return Response(results, status=status.HTTP_200_OK)
+
+class MarkInvoiceAPIView(APIView):
+    def post(self, request):
+        if request.user.is_staff:
+            invoice_id = request.data["invoice_id"]
+            tenants_data = TenantsData.objects.filter(invoice_id=invoice_id)
+            tenants_data.payment_status = "paid"
+            payment = Payments.objects.filter(invoice_id=invoice_id)
+            if payment:
+                marked_paid_at = datetime.now()
+                payment.marked_at = marked_paid_at
+                payment.save()
+                return Response({"message: Invoice marked paid successfully!"}, status=status.HTTP_200_OK)
+            return Response({"error: Payment has not be done yet."}, status=status.HTTP_404_NOT_FOUND)
+        return Response({"error: Only Staff users allowed."}, status=status.HTTP_404_NOT_FOUND)

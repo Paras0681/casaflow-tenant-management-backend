@@ -1,13 +1,8 @@
 from django.db import models
 from apps.users.models import Account
-from datetime import datetime
 import os
 import cloudinary.uploader
-import os
 from datetime import datetime
-from django.conf import settings
-from firebase_admin import storage
-from cloudinary.models import CloudinaryField
 from cloudinary.utils import cloudinary_url
 
 class Property(models.Model):
@@ -50,13 +45,15 @@ class TenantsData(models.Model):
     )
     account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name="tenants_data")
     room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name="tenants")
-    payment_status = models.CharField(max_length=10, choices=RENT_STATUS_CHOICES, default="unpaid")
+    payment_status = models.CharField(max_length=10, choices=RENT_STATUS_CHOICES, default="not_paid")
     rent_amount = models.DecimalField(max_digits=10, decimal_places=2)
     lightbill_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     other_charges = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     per_tenant_share = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     invoice_month = models.DateTimeField(auto_now_add=True)
+    invoice_url = models.URLField(max_length=500, blank=True, null=True)
+    invoice_id = models.CharField(max_length=10, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     paid_at = models.DateTimeField(null=True, blank=True)

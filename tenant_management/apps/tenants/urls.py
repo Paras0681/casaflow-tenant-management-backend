@@ -6,7 +6,10 @@ from .views import (
     GetReceiptsAPIView, 
     GenerateReceiptsAPIView, 
     PropertyAPIView, 
-    RoomAPIView
+    RoomAPIView,
+    DataAnalyticsView,
+    YearlyDataView,
+    MarkInvoiceAPIView
 )
 
 urlpatterns = [
@@ -18,5 +21,8 @@ urlpatterns = [
     path("receipts/", GetReceiptsAPIView.as_view(), name="receipts"),
     path("receipts/generate/", GenerateReceiptsAPIView.as_view(), name="generate-receipts"),
     path("properties/", PropertyAPIView.as_view(), name="properties"),
-    path("rooms/", RoomAPIView.as_view(), name="properties"),
+    path("rooms/", RoomAPIView.as_view(), name="rooms"),
+    path("analytics-summary/", DataAnalyticsView.as_view(), name='analytics-summary'),
+    path("yearlydata/", YearlyDataView.as_view(), name='yearlydata'),
+    path("mark-invoice/", MarkInvoiceAPIView.as_view(), name="mark-invoice")
 ]

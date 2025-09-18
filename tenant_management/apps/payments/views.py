@@ -11,7 +11,6 @@ from apps.tenants.models import TenantsFiles
 # Create your views here.
 class GetPaymentsAPIView(APIView):
     permission_classes = [IsAuthenticated]
-
     def get(self, request):
         user = request.user
         if user.is_staff:

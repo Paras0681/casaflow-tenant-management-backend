@@ -39,3 +39,13 @@ class RegisterAPIView(APIView):
                 "access": str(refresh.access_token),
             }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class GetUsersAPIView(APIView):
+    def get(self, request):
+        if request.user.is_staff:
+            users = User.objects.all()
+        else:
+            users = User.objects.filter(email=request.user.email)
+        serializer = UserSerializer(users)
+        return Response(serializer.data, status=status.HTTP_200_OK)

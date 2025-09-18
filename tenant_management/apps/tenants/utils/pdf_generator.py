@@ -4,6 +4,17 @@ from apps.tenants.models import TenantsFiles, Room
 from datetime import datetime, timedelta
 import uuid
 import cloudinary.uploader
+import time
+import string
+
+def generate_short_invoice_id():
+    timestamp = int(time.time())  
+    chars = string.digits + string.ascii_uppercase
+    base36 = ""
+    while timestamp > 0:
+        timestamp, i = divmod(timestamp, 36)
+        base36 = chars[i] + base36
+    return base36[-6:].upper()
 
 def generate_invoice_image(data, qr_code_path=None, font_family="arial.ttf"):
     """
@@ -99,12 +110,13 @@ def save_invoice_for_tenant(validated_data, account, qr_code_path=None, font_fam
     - Creates a TenantsFiles DB entry
     """
 
+    # breakpoint()
     room = Room.objects.get(room_number=account.room_number)
     today = datetime.today().strftime("%d.%m.%Y")
     due_date = (datetime.today() + timedelta(days=7)).strftime("%d.%m.%Y")
-
+    invoice_id = f"{generate_short_invoice_id()}"
     data = {
-        "invoice_no": f"{uuid.uuid4().hex[:5].upper()}",
+        "invoice_no": invoice_id,
         "username": f"{account.first_name} {account.last_name}",
         "room_number": account.room_number,
         "date": today,
@@ -123,12 +135,13 @@ def save_invoice_for_tenant(validated_data, account, qr_code_path=None, font_fam
 
     # Upload to Cloudinary
     month_str = datetime.now().strftime("%b").lower()
-    public_id = f"tenant_files/invoices/room_{room.room_number}/invoice_{month_str}_{account.first_name.lower()}"
-
+    img_buffer.seek(0)
     result = cloudinary.uploader.upload(
         img_buffer,
         resource_type="image",
-        public_id=public_id
+        folder=f"tenant_files/invoices/room_{room.room_number}",
+        public_id=f"{generate_short_invoice_id()}",
+        overwrite=True
     )
     file_url = result["secure_url"]
 
@@ -141,4 +154,4 @@ def save_invoice_for_tenant(validated_data, account, qr_code_path=None, font_fam
         description=f"Invoice for {month_str}"
     )
 
-    return tenant_file
+    return tenant_file.file_url, invoice_id
