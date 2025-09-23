@@ -49,31 +49,14 @@ class TenantsFilesListAPIView(APIView):
         files = TenantsFiles.objects.all().order_by('-uploaded_at').exclude(file_type__in=["payment_receipt", "invoice_bill"])
         if not user.is_staff:
             account = Account.objects.filter(user=request.user).first()
+            files.filter(room__room_number=account.room_number)
             if not account:
                 return Response(
                     {"error": "No account for this user."},
                     status=status.HTTP_404_NOT_FOUND,
                 )
-            files = TenantsFiles.objects.filter(
-                account=account
-            ).order_by('-uploaded_at').exclude(file_type="payment_receipt")
         serializer = TenantsFilesSerializer(files, many=True, context={"request": request})
         return Response(serializer.data, status=status.HTTP_200_OK)
-
-    def delete(self, request, id): 
-        file_id = id
-        file = get_object_or_404(TenantsFiles, id=file_id)
-        if not file_id:
-            return Response({"error": "File ID is required."}, status=status.HTTP_400_BAD_REQUEST)
-        try:
-            tenants_file = TenantsFiles.objects.get(id=file_id)
-            if file.public_id:  
-                cloudinary_destroy(file.public_id)
-                tenants_file.delete()
-                return Response({"message": "File deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
-
-        except TenantsFiles.DoesNotExist:
-            return Response({"error": "File not found."}, status=status.HTTP_404_NOT_FOUND)
     
 class TenantsFilesAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -123,44 +106,20 @@ class GetReceiptsAPIView(APIView):
 
     def get(self, request):
         user = request.user
-        rooms = Room.objects.all()
-        response_data = {
-            "rooms":[],
-            "receipts": []
-        }
-        for room in rooms:
-            response_data["rooms"].append({
-                "room": room.room_number,
-                "occupants": room.active_tenants 
-            })
-        accounts = Account.objects.all()
-        if not user.is_staff:
-            accounts = Account.objects.filter(user=user)
-        for accounts in accounts:
-            tenants_data = accounts.tenants_data.all()
-            if tenants_data.exists():
-                for tenant_data in tenants_data:
-                    receipt = {
-                        "tenant_name": f"{tenant_data.account.first_name} {tenant_data.account.last_name}",
-                        "room_number": tenant_data.room.room_number,
-                        "payment_status": tenant_data.payment_status,
-                        "paid_at": tenant_data.paid_at,
-                        "rent_amount": tenant_data.rent_amount,
-                        "lightbill_amount": tenant_data.lightbill_amount,
-                        "other_charges": tenant_data.other_charges,
-                        "per_tenant_share": tenant_data.per_tenant_share,
-                        "invoice_id": tenant_data.invoice_id,
-                        "invoice_url": tenant_data.invoice_url
-                    }
-                    response_data["receipts"].append(receipt)
-        return Response(response_data, status=status.HTTP_200_OK)
+        if user.is_staff:
+            tenants_data = TenantsData.objects.all()
+        else:
+            tenants_data = TenantsData.objects.filter(account__user=user)
+
+        serializer = TenantsDataSerialzier(tenants_data, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     
 class GenerateReceiptsAPIView(APIView):
     permission_classes = [IsAuthenticated]
     
     def post(self, request):
-        response = {"invoice_data": []}
         user = request.user
+        invoices = []
         if not user.is_staff:
             return Response({"error": "Only staff can access this endpoint."}, status=status.HTTP_403_FORBIDDEN)
         room = Room.objects.filter(room_number=request.data['room_number']).first()
@@ -171,11 +130,11 @@ class GenerateReceiptsAPIView(APIView):
             room = Room.objects.filter(room_number=account.room_number).first()
             serializer = TenantsDataSerialzier(data=request.data, context={"account": account, "room": room})
             if serializer.is_valid():
-                serializer.save()
-                response["invoice_data"].append(serializer.data)
+                invoice = serializer.save()
+                invoices.append(invoice)
             else:
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        return Response(response, status=status.HTTP_201_CREATED)
+        return Response(TenantsDataSerialzier(invoices, many=True).data, status=status.HTTP_201_CREATED)
 
 
 class PropertyAPIView(APIView):
@@ -205,7 +164,11 @@ class RoomAPIView(APIView):
 
 class DataAnalyticsView(APIView):
     def get(self, request):
-        total_revenue = Payments.objects.aggregate(total=Sum("amount"))["total"] or 0
+        total_revenue = (TenantsData.objects.filter(
+            payment_status__in=["paid"]
+        ).aggregate(
+            total=Sum("per_tenant_share")
+        )["total"] or 0)
         room_stats = Room.objects.aggregate(
             active_tenants=Sum("active_tenants"),
             max_occupants=Sum("max_occupants"),
@@ -213,18 +176,13 @@ class DataAnalyticsView(APIView):
         active_tenants = room_stats["active_tenants"] or 0
         max_occupants = room_stats["max_occupants"] or 0
         vacant_beds = max_occupants - active_tenants
-        pending_payments = (TenantsData.objects.filter(
-            payment_status__in=["not_paid", "unpaid"]
-        ).aggregate(
-            total=Sum("total_amount")
-        )["total"] or 0)
         payments = (
-            TenantsData.objects.filter(payment_status__in = ["paid", "not_paid", "overdue"]).values(
+            TenantsData.objects.filter(payment_status__in = ["not_paid", "not_reviewed", "paid", "overdue"]).values(
                 "payment_status"
             )
-            .annotate(total=Sum("total_amount"))
+            .annotate(total=Sum("per_tenant_share"))
         )
-        piechart_data = {"paid": 0, "not_paid": 0, "overdue": 0}
+        piechart_data = {"not_paid": 0, "not_reviewed":0, "paid": 0, "overdue": 0}
         for payment in payments:
             status_key = payment["payment_status"]
             if status_key in piechart_data:
@@ -233,7 +191,9 @@ class DataAnalyticsView(APIView):
             "card_data":{
                 "total_revenue" : total_revenue,
                 "active_tenants" : active_tenants,
-                "pending_payments" : pending_payments,
+                "not_paid_invoice" : piechart_data["not_paid"],
+                "not_reviewed_invoice" : piechart_data["not_reviewed"],
+                "overdue" : piechart_data["overdue"],
                 "vacant_beds" : vacant_beds,
             },
             "piechart_data" : piechart_data
@@ -245,26 +205,26 @@ class YearlyDataView(APIView):
     def get(self, request):
         results = []
         if request.user.is_staff:
-            payments = TenantsData.objects.filter(
+            tenants_data = TenantsData.objects.filter(
                 payment_status="paid"
             ).order_by("created_at")
         else:
             account = Account.objects.filter(user=request.user).first()
-            payments = TenantsData.objects.filter(
+            tenants_data = TenantsData.objects.filter(
                 account=account,
                 payment_status="paid"
             ).order_by("created_at")
-        for payment in payments:
-            per = payment.room.active_tenants
-            rent_amount_share = payment.rent_amount/per
-            lightbill_amount_share = payment.lightbill_amount/per
-            other_charges_share = payment.other_charges/per
+        for tenant_data in tenants_data:
+            per = tenant_data.room.active_tenants
+            rent_amount_share = tenant_data.rent_amount/per
+            lightbill_amount_share = tenant_data.lightbill_amount/per
+            other_charges_share = tenant_data.other_charges/per
             results.append({
-                "name": payment.account.first_name,
+                "name": tenant_data.account.first_name,
                 "rent_amount": rent_amount_share,
                 "lightbill_amount": lightbill_amount_share,
                 "other_charges": other_charges_share,
-                "created_at": payment.created_at
+                "created_at": tenant_data.created_at
             })
         return Response(results, status=status.HTTP_200_OK)
 
@@ -272,13 +232,14 @@ class MarkInvoiceAPIView(APIView):
     def post(self, request):
         if request.user.is_staff:
             invoice_id = request.data["invoice_id"]
-            tenants_data = TenantsData.objects.filter(invoice_id=invoice_id)
-            tenants_data.payment_status = "paid"
-            payment = Payments.objects.filter(invoice_id=invoice_id)
-            if payment:
+            payment = Payments.objects.filter(invoice_id=invoice_id).first()
+            tenant_data = TenantsData.objects.filter(invoice_id=invoice_id).first()
+            if payment and tenant_data:
                 marked_paid_at = datetime.now()
-                payment.marked_at = marked_paid_at
+                payment.marked_paid_at = marked_paid_at
+                tenant_data.payment_status = "paid"
+                tenant_data.save()
                 payment.save()
-                return Response({"message: Invoice marked paid successfully!"}, status=status.HTTP_200_OK)
-            return Response({"error: Payment has not be done yet."}, status=status.HTTP_404_NOT_FOUND)
-        return Response({"error: Only Staff users allowed."}, status=status.HTTP_404_NOT_FOUND)
+                return Response({"message": "Invoice marked paid successfully!"}, status=status.HTTP_200_OK)
+            return Response({"error": "Payment has not be done yet."}, status=status.HTTP_404_NOT_FOUND)
+        return Response({"error": "Only Staff users allowed."}, status=status.HTTP_404_NOT_FOUND)

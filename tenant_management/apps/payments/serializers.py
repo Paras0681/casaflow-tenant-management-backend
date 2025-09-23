@@ -2,6 +2,7 @@ from rest_framework import serializers
 from .models import Payments
 
 class PaymentSerializer(serializers.ModelSerializer):
+    uploaded_by = serializers.CharField(source='account.first_name', read_only=True)
     class Meta:
         model = Payments
         fields = [
@@ -12,7 +13,7 @@ class PaymentSerializer(serializers.ModelSerializer):
             "payment_utr",
             "payment_receipt_url",
             "amount", 
-            "paid_at",
+            "marked_paid_at",
             "created_at",
         ]
     def create(self, validated_data):

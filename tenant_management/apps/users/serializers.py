@@ -9,7 +9,7 @@ from apps.users.models import User
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'email']
+        fields = ['id', 'email', "is_staff"]
 
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
@@ -50,3 +50,17 @@ class RegisterSerializer(serializers.ModelSerializer):
         )
         account = Account.objects.create(user=user, **validated_data)
         return account
+    
+
+class ForgetPasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+
+class ResetPasswordSerialzier(serializers.Serializer):
+    password = serializers.CharField(write_only=True, min_length=8)
+    confirm_password = serializers.CharField(write_only=True, min_length=8)
+
+    def validate(self, data):
+        if data['password'] != data['confirm_password']:
+            raise serializers.ValidationError("Passwords do not match.")
+        return data

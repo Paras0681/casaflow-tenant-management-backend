@@ -38,14 +38,15 @@ class Room(models.Model):
 
 class TenantsData(models.Model):
     RENT_STATUS_CHOICES = (
-        ("paid", "Paid"),  
         ("not_paid", "Not Paid"),
+        ("not_reviewed", "Not Reviewed"),
         ("partial", "Partial"),
+        ("paid", "Paid"), 
         ("overdue", "Overdue"),
     )
     account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name="tenants_data")
     room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name="tenants")
-    payment_status = models.CharField(max_length=10, choices=RENT_STATUS_CHOICES, default="not_paid")
+    payment_status = models.CharField(max_length=12, choices=RENT_STATUS_CHOICES, default="not_paid")
     rent_amount = models.DecimalField(max_digits=10, decimal_places=2)
     lightbill_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     other_charges = models.DecimalField(max_digits=10, decimal_places=2, default=0)

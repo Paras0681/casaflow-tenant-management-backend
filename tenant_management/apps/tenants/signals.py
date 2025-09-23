@@ -2,6 +2,8 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from apps.tenants.models import TenantsFiles
 from apps.notifications.utils.send_notification import send_notification
+from apps.payments.models import Payments
+from datetime import datetime
 
 @receiver(post_save, sender=TenantsFiles)
 def notify_tenants_invoice_upload(sender, instance, created, **kwargs):
@@ -41,9 +43,14 @@ def notify_tenants_invoice_upload(sender, instance, created, **kwargs):
 @receiver(post_save, sender=TenantsFiles)
 def notify_admin_file_upload(sender, instance, created, **kwargs):
     if created and instance.file_type == "payment_receipt":
+        
         account = instance.account
-        payment = account.payments.reverse().first()
-        subject = f"Payment screenshot uploaded by {payment.uploaded_by} just now."
+        invoice_id = getattr(instance, "_invoice_id", None)
+        payment = Payments.objects.filter(invoice_id = invoice_id).first()
+        payment.payment_receipt_url = instance.file_url
+        payment.marked_paid_at = datetime.now()
+        payment.save()
+        subject = f"Payment screenshot uploaded by {payment.account.first_name + payment.account.last_name} just now."
         text_message = (
         f"Hello Staff,\n\n"
         f"Payment of {payment.amount}/- having UTR:{payment.payment_utr} for invoice number {payment.invoice_id} have been made.\n\n"
@@ -54,11 +61,11 @@ def notify_admin_file_upload(sender, instance, created, **kwargs):
         <body style="font-family: Arial, sans-serif; color: #333;">
             <h3 style="color: #2c3e50;">Hello Staff,</h3>
             <p>Payment of {payment.amount}/- having UTR:{payment.payment_utr} for invoice number {payment.invoice_id} have been made.</p>
-            <p>Please verify.</p>
+            <p>Please verify: {instance.file_url}</p>
             <p style="margin:20px 0;">
-                <a href="https://picsum.photos/id/237/200/300" 
+                <a href="{instance.download_url}" 
                    style="background-color:#4CAF50; color:white; padding:10px 15px; text-decoration:none; border-radius:5px;">
-                   Login
+                   Download
                 </a>
             </p>
             <p>Thank you,<br>Tenant Management Team</p>

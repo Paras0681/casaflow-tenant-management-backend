@@ -54,13 +54,15 @@ class TenantsFilesSerializer(serializers.ModelSerializer):
 
 
 class TenantsDataSerialzier(serializers.ModelSerializer):
+    first_name = serializers.CharField(source='account.first_name', read_only=True)
     room_number = serializers.CharField(source='room.room_number', read_only=True)
     payment_status = serializers.CharField(read_only=True)
 
     class Meta:
         model = TenantsData
         fields = [
-            "id",
+            "invoice_id",
+            "first_name",
             "rent_amount",
             "room_number",
             "lightbill_amount",
@@ -72,7 +74,7 @@ class TenantsDataSerialzier(serializers.ModelSerializer):
             "created_at",
             "invoice_url",
         ]
-        read_only_fields = ["id", "created_at", "paid_at", "invoice_url"]
+        read_only_fields = ["id", "created_at", "paid_at", "first_name", "invoice_id", "invoice_url"]
 
     def create(self, validated_data):
         data = validated_data

@@ -7,6 +7,8 @@ class Notification(models.Model):
         ("invoice", "Invoice"),
         ("payment", "payment"),
         ("file", "file"),
+        ("forget_password", "Forget Password"),
+        ("password_reset", "Password Reset"),
     ))
     account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='notifications')
     title = models.CharField(max_length=255, blank=True, null=True)
