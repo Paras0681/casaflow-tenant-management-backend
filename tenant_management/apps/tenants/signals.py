@@ -81,7 +81,7 @@ def notify_admin_file_upload(sender, instance, created, **kwargs):
         )
     else:
         account = instance.account
-        subject = f"{instance.file_type.replace("_", " ").upper()} has been uploaded by {account.first_name}."
+        subject = f"{instance.file_type.replace('_', ' ').upper()} has been uploaded by {account.first_name}."
         text_message = (
         f"Hello Staff,\n\n"
         f"{instance.file_type} has been uploaded by {account.first_name} here's the quick link {instance.file_url}.\n\n"

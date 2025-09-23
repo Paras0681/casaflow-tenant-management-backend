@@ -41,6 +41,7 @@ REST_FRAMEWORK = {
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     'django.middleware.security.SecurityMiddleware',
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -95,6 +96,12 @@ AUTH_USER_MODEL = 'users.User'
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+
+# Directory where collectstatic will store static files
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+
+# Optional: keep your existing STATIC_URL
+STATIC_URL = '/static/'
 
 # Configuration
 DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
