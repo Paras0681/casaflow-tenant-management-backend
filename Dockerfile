@@ -26,14 +26,14 @@ RUN apt-get update && apt-get install -y \
 # ------------------------------
 # 5. Install Python dependencies
 # ------------------------------
-COPY requirements.txt /app/
+COPY tenant-management/requirements.txt /app/
 RUN pip install --upgrade pip
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
 
 # ------------------------------
 # 6. Copy project files
 # ------------------------------
-COPY . /app/
+COPY tenant-management/ /app/
 
 # ------------------------------
 # 7. Expose port
