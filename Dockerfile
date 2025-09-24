@@ -26,7 +26,7 @@ RUN apt-get update && apt-get install -y \
 # ------------------------------
 # 5. Install Python dependencies
 # ------------------------------
-COPY tenant-management/requirements.txt /app/
+COPY requirements.txt /app/
 RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
