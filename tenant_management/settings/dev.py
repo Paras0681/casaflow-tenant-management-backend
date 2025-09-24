@@ -2,7 +2,7 @@ from .base import *
 from decouple import config
 
 DEBUG = True
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['uniform-emelita-tenant-management-03fea76d.koyeb.app']
 
 DATABASES = {
     'default': {
