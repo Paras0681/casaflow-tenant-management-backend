@@ -2,7 +2,7 @@ from .base import *
 from decouple import config
 
 DEBUG = True
-ALLOWED_HOSTS = [f"{config("WEBSERVICE_NAME")}"]
+ALLOWED_HOSTS = [f"{config("WEB_SERVICE_NAME")}"]
 
 DATABASES = {
     'default': {
