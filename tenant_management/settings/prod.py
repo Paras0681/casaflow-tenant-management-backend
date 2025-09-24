@@ -1,15 +1,16 @@
 from .base import *
+from decouple import config
 
 DEBUG = False
-ALLOWED_HOSTS = ["yourdomain.com", "www.yourdomain.com"]
+ALLOWED_HOSTS = []
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'tenant_db',
-        'USER': 'tenant_user',
-        'PASSWORD': 'your_password',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'NAME': config("DB_NAME"),
+        'USER': config("DB_USER"),
+        'PASSWORD': config("DB_PASSWORD"),
+        'HOST': config("DB_HOST"),
+        'OPTIONS': {'sslmode': 'require'},
     }
 }
