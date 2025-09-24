@@ -102,7 +102,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
 # Optional: keep your existing STATIC_URL
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [BASE_DIR / 'static']
+
 # Configuration
 DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
 
