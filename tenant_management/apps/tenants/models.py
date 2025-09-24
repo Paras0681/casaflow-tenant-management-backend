@@ -1,5 +1,5 @@
 from django.db import models
-from apps.users.models import Account
+from tenant_management.apps.users.models import Account
 import os
 import cloudinary.uploader
 from datetime import datetime

@@ -1,16 +1,14 @@
 import os
 from pathlib import Path
 from pathlib import Path
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 import cloudinary
 from decouple import config
 # Base directory (project root)
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 # Load .env file
-load_dotenv(os.path.join(BASE_DIR, ".env"))
-
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
+# load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 SECRET_KEY = config("DJANGO_SECRET_KEY")
 
@@ -24,10 +22,10 @@ INSTALLED_APPS = [
     "corsheaders",
     "rest_framework",
     "rest_framework_simplejwt",
-    "apps.users",
-    "apps.tenants",
-    "apps.payments",
-    "apps.notifications",
+    "tenant_management.apps.users",
+    "tenant_management.apps.tenants",
+    "tenant_management.apps.payments",
+    "tenant_management.apps.notifications",
     'cloudinary',
     'cloudinary_storage',
 ]

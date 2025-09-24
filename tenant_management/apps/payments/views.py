@@ -3,9 +3,9 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from .models import Payments 
-from apps.tenants.models import Account, Room
+from tenant_management.apps.tenants.models import Account, Room
 from .serializers import PaymentSerializer
-from apps.tenants.models import TenantsFiles, TenantsData
+from tenant_management.apps.tenants.models import TenantsFiles, TenantsData
 
 
 # Create your views here.

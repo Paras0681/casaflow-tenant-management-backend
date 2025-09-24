@@ -1,7 +1,7 @@
 from rest_framework import serializers
-from apps.users.models import Account, User
+from tenant_management.apps.users.models import Account, User
 from .models import TenantsData, TenantsFiles, Property, Room
-from apps.tenants.utils.pdf_generator import save_invoice_for_tenant
+from tenant_management.apps.tenants.utils.pdf_generator import save_invoice_for_tenant
 import os
 from django.conf import settings
 

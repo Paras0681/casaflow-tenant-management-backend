@@ -1,5 +1,5 @@
 from django.db import models
-from apps.tenants.models import Account
+from tenant_management.apps.tenants.models import Account
 
 # Create your models here.
 class Notification(models.Model):

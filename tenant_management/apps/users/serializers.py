@@ -2,8 +2,8 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate
 
 from rest_framework import serializers
-from apps.users.models import Account
-from apps.users.models import User
+from tenant_management.apps.users.models import Account
+from tenant_management.apps.users.models import User
 
 
 class UserSerializer(serializers.ModelSerializer):

@@ -1,5 +1,5 @@
 from django.db import models
-from apps.users.models import Account
+from tenant_management.apps.users.models import Account
 
 
 class Payments(models.Model):

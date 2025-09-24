@@ -8,9 +8,9 @@ from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .serializers import UserSerializer,LoginSerializer,RegisterSerializer, ForgetPasswordSerializer, ResetPasswordSerialzier
-from apps.users.models import Account, User
+from tenant_management.apps.users.models import Account, User
 import jwt
-from apps.notifications.utils.send_notification import send_notification
+from tenant_management.apps.notifications.utils.send_notification import send_notification
 
 User = get_user_model()
 

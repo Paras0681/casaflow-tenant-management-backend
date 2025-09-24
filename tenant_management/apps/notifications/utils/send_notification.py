@@ -1,7 +1,7 @@
 # notifications/utils/send_notification.py
 from django.core.mail import EmailMultiAlternatives
 from django.conf import settings
-from apps.notifications.models import Notification
+from tenant_management.apps.notifications.models import Notification
 
 def send_notification(user, title, message, html_message=None, notification_type=None):
     """

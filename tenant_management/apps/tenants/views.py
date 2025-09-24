@@ -4,14 +4,14 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 
 from .serializers import TenantsProfileSerializer
-from apps.users.models import Account, User
+from tenant_management.apps.users.models import Account, User
 from .models import TenantsFiles, TenantsData
 from .serializers import TenantsDataSerialzier, TenantsFilesSerializer, PropertySerializer,RoomSerializer
 from django.shortcuts import get_object_or_404
 from .models import Room, Property
 from cloudinary.uploader import destroy as cloudinary_destroy
 from django.db.models import Sum, Count, Q 
-from apps.payments.models import Payments
+from tenant_management.apps.payments.models import Payments
 from datetime import datetime
 
 # View to handle fetching Tenants Profile creation and update

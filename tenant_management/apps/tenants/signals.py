@@ -1,8 +1,8 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from apps.tenants.models import TenantsFiles
-from apps.notifications.utils.send_notification import send_notification
-from apps.payments.models import Payments
+from tenant_management.apps.tenants.models import TenantsFiles
+from tenant_management.apps.notifications.utils.send_notification import send_notification
+from tenant_management.apps.payments.models import Payments
 from datetime import datetime
 
 @receiver(post_save, sender=TenantsFiles)

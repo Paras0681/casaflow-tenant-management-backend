@@ -1,6 +1,6 @@
 from io import BytesIO
 from PIL import Image, ImageDraw, ImageFont
-from apps.tenants.models import TenantsFiles, Room
+from tenant_management.apps.tenants.models import TenantsFiles, Room
 from datetime import datetime, timedelta
 import uuid
 import cloudinary.uploader
