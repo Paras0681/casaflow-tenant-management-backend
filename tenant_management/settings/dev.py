@@ -4,6 +4,7 @@ from decouple import config
 DEBUG = True
 ALLOWED_HOSTS = [
     config("WEB_SERVICE_NAME", default=""),
+    config("FRONTEND_STAGE_SERVICE", default=""),
     ".koyeb.app",
     "localhost",
     "127.0.0.1",
