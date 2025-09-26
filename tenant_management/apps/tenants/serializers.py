@@ -106,7 +106,6 @@ class PropertySerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "name",
-            "address",
             "total_floors", 
             "total_rooms", 
             "created_at",
