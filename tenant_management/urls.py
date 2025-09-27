@@ -18,10 +18,18 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from decouple import config
+from django.http import JsonResponse
+
+def frontend_config(request):
+    return JsonResponse({
+        "API_URL": config("FRONTEND_API_URL", default="http://127.0.0.1:8000/api")
+    })
 
 urlpatterns = [
-    path("api/payments/", include("tenant_management.apps.payments.urls")),
-    path("api/tenants/", include("tenant_management.apps.tenants.urls")),
-    path("api/users/", include("tenant_management.apps.users.urls")),
     path('admin/', admin.site.urls),
+    path("config.json", frontend_config),
+    path("api/users/", include("tenant_management.apps.users.urls")),
+    path("api/tenants/", include("tenant_management.apps.tenants.urls")),
+    path("api/payments/", include("tenant_management.apps.payments.urls")),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
