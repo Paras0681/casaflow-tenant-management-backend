@@ -4,11 +4,11 @@ from decouple import config
 DEBUG = True
 
 ALLOWED_HOSTS = [
-    config("WEB_SERVICE_NAME", default=""),
-    config("FRONTEND_STAGE_SERVICE", default=""),
+    config("WEB_SERVICE_NAME", default="").strip().rstrip("/"),
+    config("FRONTEND_STAGE_HOST", default="").strip().rstrip("/"),
 ]
 CORS_ALLOWED_ORIGINS = [
-    config("FRONTEND_STAGE_SERVICE", default=""),
+    config("FRONTEND_STAGE_ORIGIN", default="").strip().rstrip("/"),
 ]
 
 DATABASES = {
