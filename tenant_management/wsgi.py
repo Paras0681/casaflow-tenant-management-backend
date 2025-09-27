@@ -13,5 +13,4 @@ from decouple import config
 
 django_env = config("DJANGO_ENV", default="local")
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", f"tenant_management.settings.{django_env}")
-
 application = get_wsgi_application()
